@@ -1,3 +1,5 @@
 *.o
 *.txt
 multi-lookup
+req
+res

@@ -20,6 +20,8 @@ int get_next_file(char* data, char** data_files, int size) {
 void* request(void *arg) {
 	params *p = arg;
 
+	int files_serviced = 0;
+
 	FILE* log_fptr = fopen(p->log_file, "a");
 	if (log_fptr == NULL) {
 		printf("Failed to open file\n");
@@ -34,6 +36,7 @@ void* request(void *arg) {
 		pthread_mutex_lock(p->data_mutex);
 		int status = get_next_file(next_file, p->data_files, p->data_files_size);
 		pthread_mutex_unlock(p->data_mutex);
+		files_serviced++;
 
 		if (status == 2) {
 			array_put(p->array, "poisonpill");
@@ -55,39 +58,44 @@ void* request(void *arg) {
 			fputs(hostname, log_fptr);
 			pthread_mutex_unlock(p->log_mutex);
 
-			pthread_mutex_lock(p->stdout_mutex);
-			printf("PUT %s\n", hostname);
-			pthread_mutex_unlock(p->stdout_mutex);
 		}
 
 		fclose(data_file);
 	}
 
+	pthread_t self_id = pthread_self();
+	pthread_mutex_lock(p->stdout_mutex);
+	printf("thread %ld serviced %d files\n", self_id, files_serviced);
+	pthread_mutex_unlock(p->stdout_mutex);
+
 	fclose(log_fptr);
 	free(p);
-	printf("exit thread requester\n");
 	return NULL;
 }
 
 void* resolve(void *arg) {
 	params *p = arg;
+	int hosts_resolved = 0;
 
 	while(1) {
 		char* IP = malloc(MAX_IP_LENGTH);
 		array_get(p->array, &IP);
+		hosts_resolved++;
 		if (strcmp(IP, "poisonpill") == 0) {
-			//free(IP);
-			free(p);
-			printf("exit thread resolver\n");
-			return NULL;
+			// //free(IP);
+			// free(p);
+			// return NULL;
+			break;
 		}
-		pthread_mutex_lock(p->stdout_mutex);
-		printf("GOT %s\n", IP);
-		pthread_mutex_unlock(p->stdout_mutex);
+
 		//free(IP);
 	}
 
-	printf("exit thread resolver\n");
+	pthread_t self_id = pthread_self();
+	pthread_mutex_lock(p->stdout_mutex);
+	printf("thread %ld resolves %d hostnames\n", self_id, hosts_resolved);
+	pthread_mutex_unlock(p->stdout_mutex);
+
 	free(p);
 	return NULL;
 }

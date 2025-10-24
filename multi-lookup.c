@@ -122,8 +122,6 @@ void* request(void *arg) {
 		int status = get_next_file(next_file, p->data_files, p->data_files_size);
 		pthread_mutex_unlock(p->data_mutex);
 
-		printf("%s\n", next_file);
-
 		if (status == 2) {
 			array_put(p->array, "poisonpill");
 			break;
@@ -192,7 +190,6 @@ int get_next_file(char* data, char** data_files, int size) {
 
 	for (int i = 0; i < size; i++) {
 
-		printf("DATA_FILE: %s: ", data_files[i]);
 		if (strcmp(data_files[i], "done") == 0) {
 			// printf("ALREADY (DONE)\n");
 			// return 2;
@@ -201,7 +198,6 @@ int get_next_file(char* data, char** data_files, int size) {
 		else {
 			strcpy(data, data_files[i]);
 			strcpy(data_files[i], "done");
-			printf("PROCESSING NOW\n");
 			return 0;
 		}
 

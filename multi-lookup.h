@@ -27,4 +27,8 @@ typedef struct params {
     pthread_mutex_t* stdout_mutex;
 } params;
 
+int get_next_file(char*, char**, int);
+void* request(void*);
+void* resolve(void*);
+
 #endif

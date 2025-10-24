@@ -21,6 +21,10 @@ typedef struct params {
     char** data_files;
     int data_files_size;
     array* array;
+
+    pthread_mutex_t* data_mutex;
+    pthread_mutex_t* log_mutex;
+    pthread_mutex_t* stdout_mutex;
 } params;
 
 #endif

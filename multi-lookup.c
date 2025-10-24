@@ -20,7 +20,7 @@ int get_next_file(char* data, char** data_files, int size) {
 void* request(void *arg) {
 	params *p = arg;
 
-	FILE* log_fptr = fopen(p->log_file, "w+");
+	FILE* log_fptr = fopen(p->log_file, "a");
 	if (log_fptr == NULL) {
 		printf("Failed to open file\n");
 		return NULL;
@@ -30,7 +30,11 @@ void* request(void *arg) {
 
 		// char* next_file = malloc(MAX_NAME_LENGTH);
 		char next_file[MAX_NAME_LENGTH];
+
+		pthread_mutex_lock(p->data_mutex);
 		int status = get_next_file(next_file, p->data_files, p->data_files_size);
+		pthread_mutex_unlock(p->data_mutex);
+
 		if (status == 2) {
 			array_put(p->array, "poisonpill");
 			break;
@@ -39,7 +43,6 @@ void* request(void *arg) {
 		FILE* data_file = fopen(next_file, "r");
 
 		/*Loop through file and write it's contents to the shared array*/
-		// char* hostname = malloc(MAX_NAME_LENGTH);
 		char hostname[MAX_NAME_LENGTH];
 
 		while(fgets(hostname, MAX_NAME_LENGTH, data_file)) {
@@ -47,14 +50,21 @@ void* request(void *arg) {
 			if (array_put(p->array, hostname) != 0) {
 				printf("Array put ERROR\n");
 			}
+
+			pthread_mutex_lock(p->log_mutex);
 			fputs(hostname, log_fptr);
+			pthread_mutex_unlock(p->log_mutex);
+
+			pthread_mutex_lock(p->stdout_mutex);
 			printf("PUT %s\n", hostname);
+			pthread_mutex_unlock(p->stdout_mutex);
 		}
 
 		fclose(data_file);
 	}
 
 	fclose(log_fptr);
+	free(p);
 	printf("exit thread requester\n");
 	return NULL;
 }
@@ -66,15 +76,19 @@ void* resolve(void *arg) {
 		char* IP = malloc(MAX_IP_LENGTH);
 		array_get(p->array, &IP);
 		if (strcmp(IP, "poisonpill") == 0) {
-			free(IP);
+			//free(IP);
+			free(p);
 			printf("exit thread resolver\n");
 			return NULL;
 		}
+		pthread_mutex_lock(p->stdout_mutex);
 		printf("GOT %s\n", IP);
+		pthread_mutex_unlock(p->stdout_mutex);
 		//free(IP);
 	}
 
 	printf("exit thread resolver\n");
+	free(p);
 	return NULL;
 }
 
@@ -89,6 +103,19 @@ int main(int argc, char** argv)
 	array array;
 	array_init(&array);
 
+	pthread_mutex_t data_mutex;
+	pthread_mutex_t log_mutex;
+	pthread_mutex_t stdout_mutex;
+
+	pthread_mutex_init(&data_mutex, NULL);
+	pthread_mutex_init(&log_mutex, NULL);
+	pthread_mutex_init(&stdout_mutex, NULL);
+
+	requesters = atoi(argv[1]);
+	resolvers = atoi(argv[2]);
+	req_log = argv[3];
+	res_log = argv[4];
+
 	if (argc < MIN_EXPECTED_ARGS) {
 		printf("multi-lookup <# requester> <# resolver> <requester log> <resolver log> [ <data file> ... ]\n");
 		return -1;
@@ -100,11 +127,6 @@ int main(int argc, char** argv)
 		printf("multi-lookup <# requester> <# resolver> <requester log> <resolver log> [ <data file> ... ]\n");
 		return -1;
 	}
-
-	requesters = atoi(argv[1]);
-	resolvers = atoi(argv[2]);
-	req_log = argv[3];
-	res_log = argv[4];
 
 	/*Put all filenames into an array*/
 	int num_data_files = argc - MIN_EXPECTED_ARGS;
@@ -129,6 +151,9 @@ int main(int argc, char** argv)
 		p->data_files = data_files;
 		p->data_files_size = num_data_files;
 		p->array = &array;
+		p->data_mutex = &data_mutex;
+		p->log_mutex = &log_mutex;
+		p->stdout_mutex = &stdout_mutex;
 		pthread_create(&req_threads[i], NULL, request, p);
 	}
 
@@ -136,6 +161,9 @@ int main(int argc, char** argv)
 		params *p = malloc(sizeof(params));
 		p->log_file = res_log;
 		p->array = &array;
+		p->data_mutex = &data_mutex;
+		p->log_mutex = &log_mutex;
+		p->stdout_mutex = &stdout_mutex;
 		pthread_create(&res_threads[i], NULL, resolve, p);
 	}
 
@@ -154,6 +182,9 @@ int main(int argc, char** argv)
 	}
 
 	array_free(&array);
+	pthread_mutex_destroy(&data_mutex);
+	pthread_mutex_destroy(&log_mutex);
+	pthread_mutex_destroy(&stdout_mutex);
 
 	return 0;
 }

@@ -55,24 +55,26 @@ void* request(void *arg) {
 	}
 
 	fclose(log_fptr);
-
+	printf("exit thread requester\n");
 	return NULL;
 }
 
 void* resolve(void *arg) {
 	params *p = arg;
 
-	for (int i = 0; i < 100; i++) {
+	while(1) {
 		char* IP = malloc(MAX_IP_LENGTH);
 		array_get(p->array, &IP);
 		if (strcmp(IP, "poisonpill") == 0) {
 			free(IP);
+			printf("exit thread resolver\n");
 			return NULL;
 		}
 		printf("GOT %s\n", IP);
-		free(IP);
+		//free(IP);
 	}
 
+	printf("exit thread resolver\n");
 	return NULL;
 }
 

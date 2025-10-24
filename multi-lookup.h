@@ -17,9 +17,10 @@
 #define MAX_IP_LENGTH INET6_ADDRSTRLEN
 
 typedef struct params {
-    FILE* log;
-    FILE* data;
-    int next_data;
+    char* log_file;;
+    char** data_files;
+    int data_files_size;
+    array* array;
 } params;
 
 #endif

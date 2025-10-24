@@ -26,7 +26,7 @@ int array_put(array *s, char *hostname) {
 		array_free(s);
 		return -1;
 	}
-	char* alloc_hostname = malloc(strlen(hostname));
+	char* alloc_hostname = malloc(strlen(hostname) + 1);
 	strcpy(alloc_hostname, hostname);
 	s->array[put] = alloc_hostname;
 	s->size++;

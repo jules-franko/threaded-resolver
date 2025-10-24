@@ -2,6 +2,10 @@
 
 #define MIN_EXPECTED_ARGS 6
 
+void* request() {
+	printf("Request\n");
+}
+
 int main(int argc, char** argv)
 {
 	/*Take command line args*/
@@ -14,7 +18,6 @@ int main(int argc, char** argv)
 	FILE* req_fptr = NULL;
 	FILE* res_fptr = NULL;
 	FILE* data_fptr = NULL;
-
 
 	array array;
 	array_init(&array);
@@ -47,42 +50,82 @@ int main(int argc, char** argv)
 		return -1;
 	}
 
-	/*Begin Resolving DNS*/
+	/*Put all filenames into an array*/
 	int num_data_files = argc - MIN_EXPECTED_ARGS;
+	char* data_files[num_data_files];
 
+	/*Fill array of data files*/
 	for (int i = 0; i < num_data_files; i++) {
-		data_file = argv[MIN_EXPECTED_ARGS+i];
-		data_fptr = fopen(data_file, "r");
-
-		if (data_fptr == NULL) {
-			printf("Failed to open data file(s): %s\n", data_file);
-			return -1;
-		}
-
-		char *hostname = malloc(MAX_NAME_LENGTH);
-		char* ip = malloc(MAX_IP_LENGTH);
-
-		while (fgets(hostname, MAX_NAME_LENGTH, data_fptr)) {
-			fprintf(req_fptr,"%s", hostname);
-
-			array_put(&array, hostname);
-			array_get(&array, &hostname);
-
-			hostname[strlen(hostname)-1] = '\0';
-
-			if (dnslookup(hostname, ip, MAX_IP_LENGTH) == -1) {
-				fprintf(res_fptr,"%s, %s", hostname, ", DNS ERROR");
-			}
-			else {
-				fprintf(res_fptr,"%s, %s", hostname, ip);
-				printf("%s\n", ip);
-			}
-		};
-
-		//free(buf);
-		free(ip);
-		fclose(data_fptr);
+		data_files[i] = argv[MIN_EXPECTED_ARGS+i];
 	}
+
+	pthread_t req_threads[requesters];
+	pthread_t res_threads[resolvers];
+
+	int next_data = 0;
+
+	for (int i = 0; i < requesters; i++) {
+		params params;
+		params.log = req_fptr;
+		params.next_data = next_data;
+		pthread_create(&req_threads[i], NULL, request, &params);
+		next_data++;
+	}
+
+	// for (int i = 0; i < num_data_files; i++) {
+	// 	data_file = argv[MIN_EXPECTED_ARGS+i];
+	// 	data_fptr = fopen(data_file, "r");
+ //
+	// 	if (data_fptr == NULL) {
+	// 		printf("Failed to open data file(s): %s\n", data_file);
+	// 		return -1;
+	// 	}
+ //
+ //
+ //
+	// 	char *hostname = malloc(MAX_NAME_LENGTH);
+	// 	char* ip = malloc(MAX_IP_LENGTH);
+ //
+	// 	while (fgets(hostname, MAX_NAME_LENGTH, data_fptr)) {
+	// 		fprintf(req_fptr,"%s", hostname);
+ //
+	// 		array_put(&array, hostname);
+	// 		array_get(&array, &hostname);
+ //
+	// 		hostname[strlen(hostname)-1] = '\0';
+ //
+	// 		if (dnslookup(hostname, ip, MAX_IP_LENGTH) == -1) {
+	// 			fprintf(res_fptr,"%s, %s", hostname, ", DNS ERROR");
+	// 		}
+	// 		else {
+	// 			fprintf(res_fptr,"%s, %s", hostname, ip);
+	// 			printf("%s\n", ip);
+	// 		}
+	// 	};
+ //
+	// 	//free(buf);
+	// 	free(ip);
+	// 	fclose(data_fptr);
+	// }
+
+	// pthread_t req_threads[requesters];
+	// pthread_t res_threads[resolvers];
+ //
+	// int num_data_files = argc - MIN_EXPECTED_ARGS;
+ //
+	// for (int i = 0; i < num_data_files; i++) {
+	// 	data_file = argv[MIN_EXPECTED_ARGS+i];
+	// 	data_fptr = fopen(data_file, "r");
+	// 	if (data_fptr == NULL) {
+	// 		printf("Failed to open data file(s): %s\n", data_file);
+	// 		return -1;
+	// 	}
+ //
+	// 	pthread_create(&req_threads[0], NULL, request, NULL);
+	// 	pthread_join(res_threads[0], NULL);
+ //
+	// 	fclose(data_fptr);
+	// }
 
 	/*Clean up program and exit normally*/
 	fclose(req_fptr);

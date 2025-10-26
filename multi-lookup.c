@@ -144,7 +144,9 @@ void* request(void *arg) {
 
 		FILE* data_file = fopen(next_file, "r");
 		if (data_file == NULL) {
+			pthread_mutex_lock(p->stdout_mutex);
 			fprintf(stderr, "invalid file %s\n", next_file);
+			pthread_mutex_unlock(p->stdout_mutex);
 		}
 		else {
 

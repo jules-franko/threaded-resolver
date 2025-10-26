@@ -178,6 +178,7 @@ void* request(void *arg) {
 
 	fclose(log_fptr);
 	free(p);
+
 	return NULL;
 }
 
@@ -192,10 +193,11 @@ void* resolve(void *arg) {
 	}
 
 	while(1) {
-		char* hostname = malloc(MAX_NAME_LENGTH);
+		char* hostname = NULL;
 		array_get(p->array, &hostname);
 
 		if (strcmp(hostname, "poisonpill") == 0) {
+			free(hostname);
 			break;
 		}
 
@@ -225,6 +227,7 @@ void* resolve(void *arg) {
 
 	free(p);
 	fclose(log_fptr);
+
 	return NULL;
 }
 

@@ -5,6 +5,9 @@ int initialize_logs(char* req_log, char* res_log);
 
 int main(int argc, char** argv)
 {
+	struct timeval start, end;
+	gettimeofday(&start, NULL);
+
 	/*Take command line args*/
 	int requesters = atoi(argv[1]);
 	int resolvers = atoi(argv[2]);
@@ -107,6 +110,12 @@ int main(int argc, char** argv)
 	pthread_mutex_destroy(&log_mutex);
 	pthread_mutex_destroy(&stdout_mutex);
 
+	gettimeofday(&end, NULL);
+	double time_taken;
+	time_taken = (end.tv_sec - start.tv_sec) * 1e6;
+	time_taken = (time_taken + (end.tv_usec - start.tv_usec)) * 1e-6;
+
+	printf("%s: total time is %f seconds\n", argv[0], time_taken);
 	return 0;
 }
 
@@ -250,4 +259,3 @@ int initialize_logs(char* req_log, char* res_log) {
 
 	return 0;
 }
-

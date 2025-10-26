@@ -8,7 +8,7 @@
 #include "array.h"
 #include <stdlib.h>
 #include <pthread.h>
-#include <semaphore.h>
+#include <sys/time.h>
 
 #define ARRAY_SIZE 8
 #define MAX_INPUT_FILES 100

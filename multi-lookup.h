@@ -25,6 +25,8 @@ typedef struct params {
     pthread_mutex_t* data_mutex;
     pthread_mutex_t* log_mutex;
     pthread_mutex_t* stdout_mutex;
+
+    int* done;
 } params;
 
 int get_next_file(char*, char**, int);

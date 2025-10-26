@@ -31,6 +31,8 @@ EXTERN int array_put (array *s, char *hostname); // place element into the array
 EXTERN int array_get (array *s, char **hostname); // remove element from the array, block when empty
 EXTERN void array_free(array *s); // free the array's resources
 
+EXTERN int array_read (array *s, char **hostname); // read the next element to be removed, but do not remove it
+
 #undef ARRAY_IMPORT
 #undef EXTERN
 #endif

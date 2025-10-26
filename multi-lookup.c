@@ -1,5 +1,5 @@
 #include "multi-lookup.h"
-#define MIN_EXPECTED_ARGS 5
+#define MIN_EXPECTED_ARGS 6
 
 int initialize_logs(char* req_log, char* res_log);
 
@@ -45,11 +45,11 @@ int main(int argc, char** argv)
 	}
 
 	/*Put all filenames into an array*/
-	int num_data_files = argc - (MIN_EXPECTED_ARGS);
+	int num_data_files = argc - (MIN_EXPECTED_ARGS-1);
 	char** data_files = malloc(num_data_files * sizeof(char*));
 
 	for (int i = 0; i < num_data_files; i++) {
-		char* datafile = argv[MIN_EXPECTED_ARGS+i];
+		char* datafile = argv[MIN_EXPECTED_ARGS+i-1];
 
 		/*Allocate space + 1 for terminating char*/
 		data_files[i] = malloc(strlen(datafile) + 1);
@@ -79,12 +79,16 @@ int main(int argc, char** argv)
 		pthread_create(&res_threads[i], NULL, resolve, p);
 	}
 
-	for (int i = 0; i < resolvers; i++) {
-		pthread_join(res_threads[i], NULL);
-	}
-
 	for (int i = 0; i < requesters; i++) {
 		pthread_join(req_threads[i], NULL);
+	}
+
+	for (int i = 0; i < resolvers; i++) {
+		array_put(&array, "poisonpill");
+	}
+
+	for (int i = 0; i < resolvers; i++) {
+		pthread_join(res_threads[i], NULL);
 	}
 
 	/*Clean up program and exit normally*/
@@ -104,7 +108,6 @@ int main(int argc, char** argv)
 
 void* request(void *arg) {
 	params *p = arg;
-
 	int files_serviced = 0;
 
 	FILE* log_fptr = fopen(p->log_file, "a");
@@ -113,9 +116,9 @@ void* request(void *arg) {
 		return NULL;
 	}
 
+	/*event loop*/
 	while(1) {
 
-		//char* next_file = malloc(MAX_NAME_LENGTH);
 		char next_file[MAX_NAME_LENGTH];
 
 		pthread_mutex_lock(p->data_mutex);
@@ -123,7 +126,7 @@ void* request(void *arg) {
 		pthread_mutex_unlock(p->data_mutex);
 
 		if (status == 2) {
-			array_put(p->array, "poisonpill");
+			//array_put(p->array, "poisonpill");
 			break;
 		}
 
@@ -138,7 +141,8 @@ void* request(void *arg) {
 			fputs(hostname, log_fptr);
 			pthread_mutex_unlock(p->log_mutex);
 
-			hostname[strlen(hostname) - 1] = '\0';
+			//hostname[strlen(hostname) - 1] = '\0';
+			hostname[strcspn(hostname, "\n")] = '\0';
 			if (array_put(p->array, hostname) != 0) {
 				printf("Array put ERROR\n");
 			}
@@ -169,8 +173,6 @@ void* resolve(void *arg) {
 		array_get(p->array, &IP);
 
 		if (strcmp(IP, "poisonpill") == 0) {
-			/*If you recieve a poisonpill, place it back into the array for the others*/
-			//array_put(p->array, "poisonpill");
 			break;
 		}
 
@@ -190,25 +192,12 @@ int get_next_file(char* data, char** data_files, int size) {
 
 	for (int i = 0; i < size; i++) {
 
-		if (strcmp(data_files[i], "done") == 0) {
-			// printf("ALREADY (DONE)\n");
-			// return 2;
-			//Pass
-		}
-		else {
+		if (strcmp(data_files[i], "done") != 0) {
 			strcpy(data, data_files[i]);
 			strcpy(data_files[i], "done");
 			return 0;
 		}
 
-		// strcpy(data, data_files[i]);
-		// if ((strcmp(data, "done") == 0)) {
-		// 	return 0;
-		// }
-		// else {
-		// 	strcpy(data_files[i], "done");
-		// 	return 0;
-		// }
 	}
 
 	return 2;

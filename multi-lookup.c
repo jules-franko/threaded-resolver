@@ -35,7 +35,7 @@ int main(int argc, char** argv)
 	if (requesters > MAX_REQUESTER_THREADS || \
 			resolvers > MAX_RESOLVER_THREADS)
 	{
-		printf("multi-lookup <# requester> <# resolver> <requester log> <resolver log> [ <data file> ... ]\n");
+		fprintf(stderr, "Args out of range\n");
 		return -1;
 	}
 
@@ -46,6 +46,10 @@ int main(int argc, char** argv)
 
 	/*Put all filenames into an array*/
 	int num_data_files = argc - (MIN_EXPECTED_ARGS-1);
+	if (num_data_files > MAX_INPUT_FILES) {
+		fprintf(stderr, "Too many input files\n");
+	}
+
 	char** data_files = malloc(num_data_files * sizeof(char*));
 
 	for (int i = 0; i < num_data_files; i++) {
@@ -130,27 +134,32 @@ void* request(void *arg) {
 		}
 
 		FILE* data_file = fopen(next_file, "r");
+		if (data_file == NULL) {
+			fprintf(stderr, "invalid file %s\n", next_file);
+		}
+		else {
 
-		/*Loop through file and write it's contents to the shared array*/
-		char hostname[MAX_NAME_LENGTH];
+			/*Loop through file and write it's contents to the shared array*/
+			char hostname[MAX_NAME_LENGTH];
 
-		while(fgets(hostname, MAX_NAME_LENGTH, data_file)) {
+			while(fgets(hostname, MAX_NAME_LENGTH, data_file)) {
 
-			pthread_mutex_lock(p->log_mutex);
-			fputs(hostname, log_fptr);
-			pthread_mutex_unlock(p->log_mutex);
+				pthread_mutex_lock(p->log_mutex);
+				fputs(hostname, log_fptr);
+				pthread_mutex_unlock(p->log_mutex);
 
-			//hostname[strlen(hostname) - 1] = '\0';
-			hostname[strcspn(hostname, "\n")] = '\0';
-			if (array_put(p->array, hostname) != 0) {
-				printf("Array put ERROR\n");
+				//hostname[strlen(hostname) - 1] = '\0';
+				hostname[strcspn(hostname, "\n")] = '\0';
+				if (array_put(p->array, hostname) != 0) {
+					printf("Array put ERROR\n");
+				}
+
 			}
 
+			files_serviced++;
+			fclose(data_file);
+			//free(next_file);
 		}
-
-		files_serviced++;
-		fclose(data_file);
-		//free(next_file);
 	}
 
 	pthread_t self_id = pthread_self();

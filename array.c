@@ -39,24 +39,13 @@ int array_get(array *s, char **hostname) {
 	sem_wait(&s->items_avail);
 	sem_wait(&s->mutex);
 	/*Begin Critical Section*/
-	*hostname = s->array[s->front];
+	//*hostname = s->array[s->front];
+	*hostname = strdup(s->array[s->front]);
 	s->front = (s->front+1)%ARRAY_SIZE;
 	s->size--;
 	/*End Critical Section*/
 	sem_post(&s->mutex);
 	sem_post(&s->space_avail);
-	return 0;
-}
-int array_read(array *s, char **hostname) {
-	sem_wait(&s->items_avail);
-	sem_wait(&s->mutex);
-	/*Begin Critical Section*/
-	*hostname = s->array[s->front];
-	// s->front = (s->front+1)%ARRAY_SIZE;
-	// s->size--;
-	/*End Critical Section*/
-	sem_post(&s->mutex);
-	//sem_post(&s->space_avail);
 	return 0;
 }
 void array_free(array *s) {

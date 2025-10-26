@@ -126,7 +126,6 @@ void* request(void *arg) {
 		pthread_mutex_unlock(p->data_mutex);
 
 		if (status == 2) {
-			//array_put(p->array, "poisonpill");
 			break;
 		}
 
@@ -168,14 +167,36 @@ void* resolve(void *arg) {
 	params *p = arg;
 	int hosts_resolved = 0;
 
-	while(1) {
-		char* IP = malloc(MAX_IP_LENGTH);
-		array_get(p->array, &IP);
+	FILE* log_fptr = fopen(p->log_file, "a");
+	if (log_fptr == NULL) {
+		printf("Failed to open file\n");
+		return NULL;
+	}
 
-		if (strcmp(IP, "poisonpill") == 0) {
+	while(1) {
+		char* hostname = malloc(MAX_NAME_LENGTH);
+		array_get(p->array, &hostname);
+
+		if (strcmp(hostname, "poisonpill") == 0) {
 			break;
 		}
 
+		/*Resolve the host*/
+		char* IP = malloc(MAX_IP_LENGTH);
+		int dns_fail = dnslookup(hostname, IP, MAX_IP_LENGTH);
+
+		/*Write to log*/
+		pthread_mutex_lock(p->log_mutex);
+		if (dns_fail == 0) {
+			fprintf(log_fptr, "%s, %s\n", hostname, IP);
+		}
+		if (dns_fail == -1) {
+			fprintf(log_fptr, "%s, %s\n", hostname, "NOT_RESOLVED");
+		}
+		pthread_mutex_unlock(p->log_mutex);
+
+		free(IP);
+		free(hostname);
 		hosts_resolved++;
 	}
 
@@ -185,6 +206,7 @@ void* resolve(void *arg) {
 	pthread_mutex_unlock(p->stdout_mutex);
 
 	free(p);
+	fclose(log_fptr);
 	return NULL;
 }
 
